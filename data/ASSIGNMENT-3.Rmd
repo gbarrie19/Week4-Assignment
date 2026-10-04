@@ -1,0 +1,225 @@
+---
+title: "Week 3 Assignment"
+author: "Giba Barrie"
+date: "2026-09-27"
+output: html_document
+--- 
+
+```{r lib}
+library(tidyverse)
+library(rio)
+library(here)
+library(ggpubr)
+library(cowplot)
+```
+
+##Exercise 1
+#Recreating figure 1 - Age distribution of participants by Gender
+
+```{r histogram}
+cleaned_NHANES <- import(here("data", "cleaned_NHANES.csv"))
+
+ggplot(data = cleaned_NHANES, aes(x = age, fill = gender)) +
+  geom_histogram(binwidth = 5, position = "dodge") + 
+  labs(
+    title = "Age distribution of participants by Gender",
+    x = "Age (Years)",
+    y = "Count",
+    fill = "Gender"
+    )
+```
+#Recreating figure 2
+```{r bargraph}
+ggplot(data = cleaned_NHANES, aes(x = ethnicity_2, fill = gender)) +
+  geom_bar(position = "fill") + 
+  labs(
+    title = "Gender proportion by ethnicity",
+    x = "Ethnicity",
+    fill = "Gender"
+  )
+```
+
+#Combining two figures 
+```{r setup} 
+p1 <- ggplot(data = cleaned_NHANES, aes(x = age, fill = gender)) +
+  geom_histogram(binwidth = 5, position = "dodge") + 
+  labs(
+    title = "Age distribution of participants by Gender",
+    x = "Age (Years)",
+    y = "Count",
+    fill = "Gender"
+  )
+
+p2 <- ggplot(data = cleaned_NHANES, aes(x = ethnicity_2, fill = gender)) +
+  geom_bar(position = "fill") + 
+  labs(
+    title = "Gender proportion by ethnicity",
+    x = "Age (Years)",
+    y = "Count",
+    fill = "Gender")
+```
+
+#Using cowplot 
+```{r combined w cowplot}
+ combined <- plot_grid (p1, p2, labels = c( "A", "B"), ncol = 2 )
+print(combined)
+```
+
+#Combining using ggarrange 
+In this instance, I believe plot_grid worked best aesthetically because it aligned the graphs better. 
+
+```{r combined w ggarrange}
+combined <- ggarrange(p1, p2, 
+                      labels = c("A", "B"), 
+                      ncol = 2,
+                      nrow =1, 
+                      common.legend = TRUE, legend = "right")
+print(combined)
+```
+##Exercise 2 
+In comparing the two ethnicity variables, I believe ethnicity2 is the better option as it has more racial categories. 
+
+For the age figure, the highest distribiution is among those aged 2. 
+For the gender figure, females are more representated than males. 
+For the Ethnicity 2 figure, white people account for the highest racial group. 
+```{r exercise 2-graphs, message=FALSE, warning=FALSE}
+library(ggplot2)
+#Age figure 
+figure_age <- ggplot(data = cleaned_NHANES, aes(x = age)) +
+  geom_histogram(color = "black") + 
+  labs(
+    title = "Distribution of Participant Age",
+    x = "Age (Years)",
+    y = "Count"
+  )
+print(figure_age)
+ggsave("figure_age.png", plot = figure_age, width = 6, height = 4)
+
+#Gender figure 
+gender_figure <- ggplot(data = cleaned_NHANES, aes(x = gender, fill = gender)) +
+  geom_bar() + 
+  labs(
+    title = "Distribution of Participant Gender",
+    x = "Gender",
+    y = "Count") + theme(legend.position = "none")
+print(gender_figure)
+ggsave("gender_figure.png", plot = gender_figure, width = 6, height = 4)
+
+#Ethnicity variable 1
+ethnicity1 <- ggplot(data = cleaned_NHANES, aes(x = ethnicity_1, fill = ethnicity_1)) +
+  geom_bar() + 
+  labs(
+    title = "Distribution of Ethnicity (1)",
+    x = "Ethnicity Category",
+    y = "Count"
+  )
+print(ethnicity1)
+ggsave("ethnicity1.png", plot = ethnicity1, width = 6, height = 4)
+
+
+#Ethnicity variable 2 
+ethnicity2 <- ggplot(data = cleaned_NHANES, aes(x = ethnicity_2, fill = ethnicity_2)) +
+  geom_bar() + 
+  labs(
+    title = "Distribution of Ethnicity (2)",
+    x = "Ethnicity Category",
+    y = "Count"
+  )
+print(ethnicity2)
+ggsave("ethnicity2.png", plot = ethnicity2, width = 6, height = 4)
+```
+
+##Exercise 3 
+From a first glance, the graph is overwhelming as it is cluttered. The colours look too similar, and the legend not being labelled is confusing. 
+I would use a color scheme that is easier to follow and a legend that is labelled clearly 
+
+```{r exercise 3-graphs, message=FALSE, warning=FALSE}
+
+diet_data <- import(here("data", "diet.csv"))
+baseline_weights <- diet_data %>% 
+  filter(Week == 0) %>% 
+  select(Participant, baseline = Weight)
+
+improved_data <- diet_data %>% 
+  left_join(baseline_weights, by = "Participant") %>% 
+  mutate(weight_change = Weight - baseline)
+
+ggplot(improved_data, aes(x = Week, y = weight_change)) +
+  geom_smooth(color = "pink")+
+  geom_point() +
+  theme_minimal() +
+  labs(
+    title = "Participant weight change with diet", 
+    x = "Week",
+    y = "Weight change from week 0"
+  )
+```
+
+##Exercise 4 
+
+```{r exercise 4-graphs, message=FALSE, warning=FALSE}
+
+nhanes_data <- cleaned_NHANES %>% 
+  mutate(
+    average_sbp = rowMeans(
+      cbind(systolic_bp_1, systolic_bp_2, systolic_bp_3, systolic_bp_4), 
+      na.rm = TRUE
+    )
+  )
+
+nhanes_filtered <- nhanes_data %>% 
+  filter(
+    age == age,
+    gender == gender,
+    average_sbp == average_sbp
+  )
+
+nhanes_final <- nhanes_filtered %>% 
+  mutate(
+    sbp_category = case_when(
+      average_sbp < 120 ~ "Normal",
+      average_sbp >= 120 & average_sbp < 130 ~ "Elevated",
+      average_sbp >= 130 & average_sbp < 140 ~ "Stage 1 hypertension",
+      average_sbp >= 140 ~ "Stage 2 hypertension"
+    ),
+    sbp_category = factor(
+      sbp_category, 
+      levels = c("Normal", "Elevated", "Stage 1 hypertension", "Stage 2 hypertension")
+    )
+  )
+
+ggplot(nhanes_final, aes(x = sbp_category)) +
+  geom_bar(fill = "purple") +
+  theme_minimal() +
+  labs(
+    title = "Distribution of Blood Pressure Categories",
+    x = "Hypertension Category",
+    y = "Count of Individuals"
+  )
+
+ggplot(nhanes_final, aes(x = gender)) +
+  geom_bar(fill = "lightblue") +
+  theme_minimal() +
+  labs(
+    title = "Gender Distribution in Final Sample",
+    x = "Gender",
+    y = "Count of Individuals"
+  )
+
+# In my sample here versus my previous figure, the sample size reduced significantly. In particular, females had a count of about 15000, and now the count of individuals is about 9500, leading to a change of approximately 5500 females. 
+
+#Final visualization 
+
+ggplot(nhanes_final, aes(x = sbp_category)) +
+  geom_bar(fill = "darkred") +
+  facet_grid(gender ~ age_cat) +
+    scale_fill_brewer(palette = "Red") + 
+  theme_minimal() +
+  labs(
+    title = "Hypertension Distributions Across Gender and Age Groups",
+    x = "Systolic Blood Pressure Category",
+    y = "Count" 
+  ) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
