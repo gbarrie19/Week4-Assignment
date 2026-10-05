@@ -1,0 +1,94 @@
+---
+title: "NHANES Dataset Complex Table Report"
+author: "Giba Barrie"
+date: "2026-10-05"
+output: pdf_document
+bibliography: references.bib
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(rio)
+library(here)
+library(knitr)
+library(kableExtra)
+
+cleaned_NHANES <- import(here("data", "cleaned_NHANES.csv"))
+colnames(cleaned_NHANES) <- tolower(colnames(cleaned_NHANES))
+cleaned_NHANES <- cleaned_NHANES %>% 
+  mutate(
+    gender = tolower(gender),
+    ethnicity_2 = tolower(ethnicity_2)
+  )
+
+# Calculate the average systolic blood pressure across the 4 columns
+cleaned_NHANES <- cleaned_NHANES %>% 
+  mutate(bpsysave = rowMeans(select(., systolic_bp_1, systolic_bp_2, systolic_bp_3, systolic_bp_4), na.rm = TRUE))
+```
+
+# Introduction
+The National Health and Nutrition Examination Survey (NHANES) is a major program of studies designed to assess the health and nutritional status of adults and children in the United States [@nhanes]. It  provides an overview of various variables including gender, ethnicity, and blood pressure. 
+
+```{r create-bib, echo=FALSE, message=FALSE, warning=FALSE}
+# Bypasses the cat engine bug by writing the file natively
+bib_content <- c(
+  "@misc{nhanes,",
+  "  author = {{Centers for Disease Control and Prevention}},",
+  "  title = {National Health and Nutrition Examination Survey},",
+  "  year = {2026},",
+  "  url = {https://cdc.gov}",
+  "}"
+)
+writeLines(bib_content, "references.bib")
+```
+
+# Demographic & Blood Pressure Metrics by Wave
+
+```{r table1, echo=FALSE}
+# Aggregate sample size, male counts, and blood pressure stats by wave
+wave_summary <- cleaned_NHANES %>%
+  group_by(wave_id) %>%
+  summarise(
+    Total_N = n(),
+    Male_N = sum(gender == "male", na.rm = TRUE),
+    Male_Pct = round((Male_N / Total_N) * 100, 1),
+    BP_Min = round(min(bpsysave, na.rm = TRUE), 1),
+    BP_Max = round(max(bpsysave, na.rm = TRUE), 1),
+    BP_Med = round(median(bpsysave, na.rm = TRUE), 1),
+    BP_Mean = round(mean(bpsysave, na.rm = TRUE), 1),
+    BP_SD = round(sd(bpsysave, na.rm = TRUE), 1),
+    .groups = "drop"
+  )
+
+kable(wave_summary, 
+      format = "latex",
+      booktabs = TRUE,
+      col.names = c("Wave ID", "Total N", "Count", "%", "Min", "Max", "Median", "Mean", "SD"),
+      caption = "Sample Overview and Systolic Blood Pressure Statistics by Wave") %>%
+  kable_styling(latex_options = c("striped", "hold_position")) %>%
+  add_header_above(c(" " = 2, "Male Demographics" = 2, "Average Systolic BP (mm Hg)" = 5)) %>%
+  row_spec(0, bold = TRUE, background = "lightgray")
+```
+
+# Ethnic Distribution by Study Wave
+To maintain layout legibility within the PDF borders, the frequency counts and calculated percentages for participant ethnic categories are detailed below.
+
+```{r table2, echo=FALSE}
+ethnicity_summary <- cleaned_NHANES %>%
+  group_by(wave_id, ethnicity_2) %>%
+  summarise(count = n(), .groups = "drop_last") %>%
+  mutate(pct = round((count / sum(count)) * 100, 1)) %>%
+  mutate(display_val = paste0(count, " (", pct, "%)")) %>%
+  select(wave_id, ethnicity_2, display_val) %>%
+  pivot_wider(names_from = ethnicity_2, values_from = display_val, values_fill = "0 (0%)")
+
+# Render the secondary table
+kable(ethnicity_summary, 
+      format = "latex",
+      booktabs = TRUE,
+      caption = "Participant Ethnicity Distribution Counts and Percentages by Wave") %>%
+  kable_styling(latex_options = c("striped", "hold_position")) %>%
+  row_spec(0, bold = TRUE, background = "lightgray")
+```
+
+# References
