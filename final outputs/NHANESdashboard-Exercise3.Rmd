@@ -15,11 +15,9 @@ library(here)
 cleaned_NHANES <- import(here("data", "cleaned_NHANES.csv"))
 colnames(cleaned_NHANES) <- tolower(colnames(cleaned_NHANES))
 
-# 1. Standardize gender text to lowercase
 cleaned_NHANES <- cleaned_NHANES %>% 
   mutate(gender = tolower(gender))
 
-# 2. Calculate the average systolic blood pressure across all 4 readings
 cleaned_NHANES <- cleaned_NHANES %>% 
   mutate(bpsysave = rowMeans(select(., systolic_bp_1, systolic_bp_2, systolic_bp_3, systolic_bp_4), na.rm = TRUE))
 ```
