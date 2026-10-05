@@ -3,7 +3,7 @@ title: "Week 4 Assignment"
 author: "Giba Barrie"
 date: "2026-09-27"
 output: 
-    html_document:
+  html_document:
     theme: flatly
     highlight: tango
     toc: true 
@@ -11,7 +11,7 @@ output:
     toc_float: true
 --- 
 
-```{r lib}
+```{r lib, message=FALSE, warning=FALSE}
 library(tidyverse)
 library(rio)
 library(here)
@@ -25,7 +25,7 @@ library(ggplot2)
 
 ### Individual figures
 
-# Recreating figure 1 - Age distribution of participants by Gender
+**Recreating figure 1 - Age distribution of participants by Gender**
 
 ```{r histogram}
 cleaned_NHANES <- import(here("data", "cleaned_NHANES.csv"))
@@ -39,7 +39,7 @@ ggplot(data = cleaned_NHANES, aes(x = age, fill = gender)) +
     fill = "Gender"
     )
 ```
-# Recreating figure 2
+**Recreating figure 2**
 ```{r bargraph}
 ggplot(data = cleaned_NHANES, aes(x = ethnicity_2, fill = gender)) +
   geom_bar(position = "fill") + 
@@ -70,7 +70,7 @@ p2 <- ggplot(data = cleaned_NHANES, aes(x = ethnicity_2, fill = gender)) +
     fill = "Gender")
 ```
 
-#Using cowplot 
+**Using cowplot**
 ```{r combined w cowplot}
  combined <- plot_grid (p1, p2, labels = c( "A", "B"), ncol = 2 )
 print(combined)
@@ -87,13 +87,24 @@ combined <- ggarrange(p1, p2,
                       common.legend = TRUE, legend = "right")
 print(combined)
 ```
+
 ## Exercise 2 
+### Interactive table 
+```{r itable}
+datatable(
+  cleaned_NHANES, 
+  filter = "top", 
+  options = list(pageLength = 5, autoWidth = TRUE)
+)
+```
+
 In comparing the two ethnicity variables, I believe ethnicity2 is the better option as it has more racial categories. 
 
 For the age figure, the highest distribiution is among those aged 2. 
 For the gender figure, females are more representated than males. 
 For the Ethnicity 2 figure, white people account for the highest racial group. 
-```{r exercise 2-graphs, message=FALSE, warning=FALSE}
+```{r exercise 2-graphs, message=FALSE, warning=FALSE} 
+
 #Age figure 
 figure_age <- ggplot(data = cleaned_NHANES, aes(x = age)) +
   geom_histogram(color = "black") + 
@@ -139,7 +150,7 @@ print(ethnicity2)
 ggsave("ethnicity2.png", plot = ethnicity2, width = 6, height = 4)
 ```
 
-##Exercise 3 
+## Exercise 3 
 From a first glance, the graph is overwhelming as it is cluttered. The colours look too similar, and the legend not being labelled is confusing. 
 I would use a color scheme that is easier to follow and a legend that is labelled clearly 
 
@@ -165,7 +176,7 @@ ggplot(improved_data, aes(x = Week, y = weight_change)) +
   )
 ```
 
-##Exercise 4 
+## Exercise 4 
 
 ```{r exercise 4-graphs, message=FALSE, warning=FALSE}
 
