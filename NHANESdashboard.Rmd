@@ -2,29 +2,99 @@
 title: "NHANES Dashboard"
 author: "Giba Barrie"
 date: "2026-10-05"
-output: html_document
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: rows 
 ---
-
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+library(flexdashboard)
+library(tidyverse)
+library(rio)
+library(here)
+# Import and immediately convert column names to lowercase
+cleaned_NHANES <- import(here("data", "cleaned_NHANES.csv"))
+colnames(cleaned_NHANES) <- tolower(colnames(cleaned_NHANES))
+
+# 1. Standardize gender text to lowercase
+cleaned_NHANES <- cleaned_NHANES %>% 
+  mutate(gender = tolower(gender))
+
+# 2. Calculate the average systolic blood pressure across all 4 readings
+cleaned_NHANES <- cleaned_NHANES %>% 
+  mutate(bpsysave = rowMeans(select(., systolic_bp_1, systolic_bp_2, systolic_bp_3, systolic_bp_4), na.rm = TRUE))
 ```
 
-## R Markdown
+Row {data-height=600}
+-----------------------------------------------------------------------
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+### Participant Breakdown by Ethnicity and Gender
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+```{r top-table}
+# Build cross-tab using column names inside quotes
+table_eth_gender <- table(cleaned_NHANES[["ethnicity_2"]], cleaned_NHANES[["gender"]])
+row_percents <- prop.table(table_eth_gender, margin = 1) * 100
+n <- rowSums(table_eth_gender)
 
-```{r cars}
-summary(cars)
+full_table <- as.data.frame(cbind(
+  n,
+  `Female (%)` = round(row_percents[, "female"], 1),
+  `Male (%)`   = round(row_percents[, "male"], 1)
+))
+
+# Sort descending by sample size
+full_table <- full_table[order(-full_table[["n"]]), ]
+knitr::kable(full_table, caption = "NHANES Sample Size and Gender Breakdown by Ethnicity")
 ```
 
-## Including Plots
+### Age Distribution of Participants by Gender
 
-You can also embed plots, for example:
-
-```{r pressure, echo=FALSE}
-plot(pressure)
+```{r plot}
+ggplot(data = cleaned_NHANES, aes(x = age, fill = gender)) +
+  geom_histogram(binwidth = 5, position = "dodge") + 
+  labs(
+    title = "Age distribution of participants by Gender",
+    x = "Age (Years)",
+    y = "Count",
+    fill = "Gender"
+  ) +
+  theme_minimal()
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+Row {data-height=400}
+-----------------------------------------------------------------------
+
+### Percentage of Individuals 21 Years or Older
+
+```{r bottom-left}
+age_table <- table(cleaned_NHANES[["age"]] >= 21)
+
+adult_count <- age_table["TRUE"]
+total_count <- sum(age_table)
+
+pct_adults <- round((adult_count / total_count) * 100, 1)
+
+gauge(pct_adults, min = 0, max = 100, symbol = '%', gaugeSectors(
+  success = c(70, 100), 
+  warning = c(40, 69), 
+  danger = c(0, 39)
+))
+```
+
+### High Average Systolic Blood Pressure (>120 mm Hg)
+
+```{r bottom-right}
+# Evaluates using the freshly calculated 'bpsysave' column
+bp_table <- table(cleaned_NHANES[["bpsysave"]] > 120)
+
+high_bp_count <- bp_table["TRUE"]
+total_bp_count <- sum(bp_table)
+
+pct_high_bp <- round((high_bp_count / total_bp_count) * 100, 1)
+
+valueBox(
+  value = paste0(pct_high_bp, "%"),
+  caption = "Proportion with Systolic BP > 120 mm Hg",
+  icon = "fa-heartbeat",
+  color = "orange"
+)
+```
