@@ -1,8 +1,14 @@
 ---
-title: "Week 3 Assignment"
+title: "Week 4 Assignment"
 author: "Giba Barrie"
 date: "2026-09-27"
-output: html_document
+output: 
+    html_document:
+    theme: flatly
+    highlight: tango
+    toc: true 
+    toc_depth: 2
+    toc_float: true
 --- 
 
 ```{r lib}
@@ -11,10 +17,15 @@ library(rio)
 library(here)
 library(ggpubr)
 library(cowplot)
+library(DT)
+library(ggplot2)
 ```
 
-##Exercise 1
-#Recreating figure 1 - Age distribution of participants by Gender
+## Exercise 1 {.tabset}
+
+### Individual figures
+
+# Recreating figure 1 - Age distribution of participants by Gender
 
 ```{r histogram}
 cleaned_NHANES <- import(here("data", "cleaned_NHANES.csv"))
@@ -28,7 +39,7 @@ ggplot(data = cleaned_NHANES, aes(x = age, fill = gender)) +
     fill = "Gender"
     )
 ```
-#Recreating figure 2
+# Recreating figure 2
 ```{r bargraph}
 ggplot(data = cleaned_NHANES, aes(x = ethnicity_2, fill = gender)) +
   geom_bar(position = "fill") + 
@@ -39,7 +50,7 @@ ggplot(data = cleaned_NHANES, aes(x = ethnicity_2, fill = gender)) +
   )
 ```
 
-#Combining two figures 
+### Combined figures
 ```{r setup} 
 p1 <- ggplot(data = cleaned_NHANES, aes(x = age, fill = gender)) +
   geom_histogram(binwidth = 5, position = "dodge") + 
@@ -76,14 +87,13 @@ combined <- ggarrange(p1, p2,
                       common.legend = TRUE, legend = "right")
 print(combined)
 ```
-##Exercise 2 
+## Exercise 2 
 In comparing the two ethnicity variables, I believe ethnicity2 is the better option as it has more racial categories. 
 
 For the age figure, the highest distribiution is among those aged 2. 
 For the gender figure, females are more representated than males. 
 For the Ethnicity 2 figure, white people account for the highest racial group. 
 ```{r exercise 2-graphs, message=FALSE, warning=FALSE}
-library(ggplot2)
 #Age figure 
 figure_age <- ggplot(data = cleaned_NHANES, aes(x = age)) +
   geom_histogram(color = "black") + 
